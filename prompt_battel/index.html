@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Routeless | Rural Transit Crisis & Community Ride-Share Board</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              brown: '#3B2418',
+              cream: '#F2E8DA',
+              babyblue: '#8EC5FF',
+            },
+            brown: {
+              50: '#FAF6F3',
+              100: '#F5ECE6',
+              200: '#E7D5C9',
+              300: '#C7A794',
+              400: '#8A5D44',
+              500: '#5C3825',
+              600: '#4D2F1F',
+              700: '#3B2418',
+              800: '#2C1B12',
+              900: '#1D120C',
+              DEFAULT: '#3B2418',
+            },
+            cream: {
+              50: '#FCF9F5',
+              100: '#F2E8DA',
+              200: '#E6D7C2',
+              300: '#D5C1A6',
+              DEFAULT: '#F2E8DA',
+            },
+            babyblue: {
+              50: '#F0F7FF',
+              100: '#DDEEFF',
+              200: '#C2E1FF',
+              300: '#8EC5FF',
+              400: '#6CB2FE',
+              500: '#4696F8',
+              DEFAULT: '#8EC5FF',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --color-brown: #3B2418;
+      --color-cream: #F2E8DA;
+      --color-babyblue: #8EC5FF;
+    }
+    @keyframes radar-pulse {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    .radar-circle {
+      animation: radar-pulse 2.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+    }
+    .dash-line {
+      stroke-dasharray: 6 6;
+      animation: dash 15s linear infinite;
+    }
+    @keyframes dash {
+      to { stroke-dashoffset: -100; }
+    }
+  </style>
+</head>
+<body class="bg-[#F2E8DA] text-[#3B2418] min-h-screen flex flex-col font-sans antialiased selection:bg-[#8EC5FF] selection:text-[#3B2418]">
+
+  <!-- TOP APP BAR -->
+  <header class="bg-[#3B2418] text-[#F2E8DA] shadow-lg sticky top-0 z-50 border-b border-[#3B2418]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Title -->
+        <div class="flex items-center space-x-3">
+          <div class="h-10 w-10 rounded-xl bg-[#8EC5FF] flex items-center justify-center shadow-md">
+            <svg class="w-6 h-6 text-[#3B2418]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xl font-extrabold tracking-tight text-[#F2E8DA]">Routeless</span>
+              <span class="text-[10px] uppercase px-2 py-0.5 rounded bg-[#8EC5FF]/20 text-[#8EC5FF] font-bold border border-[#8EC5FF]/30">Auto-Routing v2</span>
+            </div>
+            <p class="text-xs text-[#F2E8DA]/70 hidden sm:block">Rural Student Transportation Recovery System</p>
+          </div>
+        </div>
+
+        <!-- 4 Role / Dashboard Switcher Pills -->
+        <nav class="flex items-center bg-[#2B1A11] p-1 rounded-xl border border-[#F2E8DA]/15 space-x-1 overflow-x-auto">
+          <!-- 1. Student -->
+          <button id="tabBtnStudent" onclick="switchDashboard('student')" class="px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 flex items-center space-x-1.5 text-[#3B2418] bg-[#8EC5FF] shadow cursor-pointer">
+            <span>🎓 Student</span>
+            <span id="studentBadge" class="hidden h-2 w-2 rounded-full bg-[#3B2418] animate-pulse"></span>
+          </button>
+          
+          <!-- 2. School Ops -->
+          <button id="tabBtnSchool" onclick="switchDashboard('school')" class="px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-1.5 text-[#F2E8DA]/80 hover:text-white hover:bg-[#3B2418]/80 cursor-pointer">
+            <span>🏫 School Ops</span>
+            <span id="schoolExamBridgeBadge" class="hidden px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-[#8EC5FF] text-[#3B2418] animate-pulse">0</span>
+            <span id="schoolHighDemandBadge" class="hidden px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-[#8EC5FF] text-[#3B2418]">0</span>
+            <span id="schoolInTransitBadge" class="hidden px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-[#8EC5FF] text-[#3B2418]">0</span>
+          </button>
+          
+          <!-- 3. Local Drivers -->
+          <button id="tabBtnDriver" onclick="switchDashboard('driver')" class="px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-1.5 text-[#F2E8DA]/80 hover:text-white hover:bg-[#3B2418]/80 cursor-pointer">
+            <span>🚐 Local Drivers</span>
+            <span id="driverAutoBroadcastBadge" class="hidden px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-[#8EC5FF] text-[#3B2418]">0</span>
+          </button>
+
+          <!-- 4. Parents -->
+          <button id="tabBtnParent" onclick="switchDashboard('parent')" class="px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-1.5 text-[#F2E8DA]/80 hover:text-white hover:bg-[#3B2418]/80 cursor-pointer">
+            <span>👨‍👩‍👧 Parents</span>
+            <span id="parentPaymentBadge" class="hidden px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-[#8EC5FF] text-[#3B2418] animate-bounce">Pay</span>
+          </button>
+        </nav>
+
+        <!-- Demo Utilities -->
+        <div class="hidden lg:flex items-center space-x-2">
+          <button onclick="seedSampleData(false)" title="Seed village with <= 10 requests (Auto-Broadcast to Drivers)" class="text-xs bg-[#2B1A11] hover:bg-[#8EC5FF] text-[#F2E8DA] hover:text-[#3B2418] px-2.5 py-1.5 rounded-lg border border-[#F2E8DA]/20 transition cursor-pointer font-medium">
+            ⚡ Seed Normal (≤10)
+          </button>
+          <button onclick="seedHighDemandData()" title="Seed village with > 10 requests (School Reviewing & Bus Dispatch)" class="text-xs bg-[#2B1A11] hover:bg-[#8EC5FF] text-[#F2E8DA] hover:text-[#3B2418] px-2.5 py-1.5 rounded-lg border border-[#F2E8DA]/20 transition cursor-pointer font-medium">
+            🔥 Seed High (>10)
+          </button>
+          <button onclick="clearAllData()" title="Clear LocalStorage state" class="text-xs bg-[#2B1A11] hover:bg-rose-900/60 text-[#F2E8DA]/70 hover:text-white px-2 py-1.5 rounded-lg border border-[#F2E8DA]/20 transition cursor-pointer">
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NOTIFICATION TOAST -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform transition-all duration-300 translate-y-20 opacity-0 pointer-events-none">
+    <div class="bg-[#3B2418] text-[#F2E8DA] border-2 border-[#8EC5FF] px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3">
+      <div id="toastIcon" class="text-[#8EC5FF]">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <p id="toastMessage" class="text-sm font-medium">Notification message</p>
+    </div>
+  </div>
+
+  <!-- MAIN VIEWPORT CONTAINER -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ========================================================================= -->
+    <!-- 1. STUDENT DASHBOARD VIEW                                                 -->
+    <!-- ========================================================================= -->
+    <div id="studentDashboard" class="space-y-6">
+      
+      <!-- Student View Banner -->
+      <div class="bg-gradient-to-r from-[#3B2418] via-[#4D2F1F] to-[#2B1A11] rounded-2xl p-6 text-[#F2E8DA] shadow-md border border-[#3B2418] relative overflow-hidden">
+        <div class="relative z-10 max-w-2xl">
+          <div class="inline-flex items-center space-x-2 bg-[#8EC5FF]/20 border border-[#8EC5FF]/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 text-[#8EC5FF]">
+            <span>Student Portal • Privacy-Protected Session</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">Stranded Transit Assistance</h1>
+          <p class="mt-2 text-sm sm:text-base text-[#F2E8DA]/90">
+            Report missing buses or breakdowns. Village clusters $\le 10$ auto-broadcast to local drivers. Clusters $> 10$ are triaged by the school ops center for emergency bus dispatch.
+          </p>
+        </div>
+      </div>
+
+      <!-- Grid: Report Form + Live Tracker -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Form Column (5 cols) -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/15 p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-[#3B2418]/10 mb-4">
+              <div>
+                <h2 class="text-lg font-bold text-[#3B2418]">Report Missing / Failed Bus</h2>
+                <p class="text-xs text-[#3B2418]/60">Evaluates village volume threshold</p>
+              </div>
+              <span class="p-2 rounded-xl bg-[#8EC5FF]/20 text-[#3B2418] border border-[#8EC5FF]/40">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </span>
+            </div>
+
+            <form id="studentReportForm" onsubmit="handleStudentReport(event)" class="space-y-4">
+              <div>
+                <label for="studentNameInput" class="block text-xs font-bold text-[#3B2418] uppercase tracking-wider mb-1">Student Full Name *</label>
+                <input type="text" id="studentNameInput" required placeholder="e.g. Priya Deshmukh" class="w-full px-3.5 py-2.5 rounded-xl border border-[#3B2418]/25 text-sm focus:ring-2 focus:ring-[#8EC5FF] focus:border-[#3B2418] transition shadow-sm bg-white">
+              </div>
+
+              <div>
+                <label for="studentVillageInput" class="block text-xs font-bold text-[#3B2418] uppercase tracking-wider mb-1">Village / Pickup Point *</label>
+                <input type="text" id="studentVillageInput" required placeholder="e.g. Velhe Junction" class="w-full px-3.5 py-2.5 rounded-xl border border-[#3B2418]/25 text-sm focus:ring-2 focus:ring-[#8EC5FF] focus:border-[#3B2418] transition shadow-sm bg-white">
+                <!-- Quick village suggestions -->
+                <div class="mt-2 flex flex-wrap gap-1.5 text-xs text-[#3B2418]/70">
+                  <span class="text-[11px] text-[#3B2418]/60 py-0.5">Quick picks:</span>
+                  <button type="button" onclick="setVillage('Velhe Junction')" class="px-2 py-0.5 bg-[#F2E8DA] hover:bg-[#8EC5FF] rounded text-[#3B2418] border border-[#3B2418]/20 transition cursor-pointer font-medium">Velhe Junction</button>
+                  <button type="button" onclick="setVillage('Saswad Crossroad')" class="px-2 py-0.5 bg-[#F2E8DA] hover:bg-[#8EC5FF] rounded text-[#3B2418] border border-[#3B2418]/20 transition cursor-pointer font-medium">Saswad Crossroad</button>
+                  <button type="button" onclick="setVillage('Khed Shivapur')" class="px-2 py-0.5 bg-[#F2E8DA] hover:bg-[#8EC5FF] rounded text-[#3B2418] border border-[#3B2418]/20 transition cursor-pointer font-medium">Khed Shivapur</button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label for="busRouteInput" class="block text-xs font-bold text-[#3B2418] uppercase tracking-wider mb-1">Bus Route</label>
+                  <input type="text" id="busRouteInput" placeholder="e.g. Route 14-B" value="Route 14-B" class="w-full px-3 py-2 rounded-xl border border-[#3B2418]/25 text-sm focus:ring-2 focus:ring-[#8EC5FF] focus:border-[#3B2418] transition bg-white">
+                </div>
+                <div>
+                  <label for="studentPhoneInput" class="block text-xs font-bold text-[#3B2418] uppercase tracking-wider mb-1">Parent Phone</label>
+                  <input type="tel" id="studentPhoneInput" placeholder="+91 98765-43210" value="+91 98765-43210" class="w-full px-3 py-2 rounded-xl border border-[#3B2418]/25 text-sm focus:ring-2 focus:ring-[#8EC5FF] focus:border-[#3B2418] transition bg-white">
+                </div>
+              </div>
+
+              <div>
+                <label for="transitReasonInput" class="block text-xs font-bold text-[#3B2418] uppercase tracking-wider mb-1">Incident Details</label>
+                <select id="transitReasonInput" class="w-full px-3 py-2 rounded-xl border border-[#3B2418]/25 text-sm focus:ring-2 focus:ring-[#8EC5FF] focus:border-[#3B2418] bg-white text-[#3B2418]">
+                  <option value="Bus broke down / engine stalled">Bus broke down / engine stalled</option>
+                  <option value="Bus never showed up (+30m delayed)">Bus never showed up (+30m delayed)</option>
+                  <option value="Overcrowded / skipped rural pickup point">Overcrowded / skipped rural pickup point</option>
+                  <option value="Route canceled due to driver shortage">Route canceled due to driver shortage</option>
+                </select>
+              </div>
+
+              <!-- Urgent Exam Priority Checkbox -->
+              <label class="flex items-start space-x-3 p-3 bg-red-50 border-2 border-red-300 rounded-xl cursor-pointer select-none hover:bg-red-100 transition">
+                <input type="checkbox" id="examPriorityCheckbox" name="exam-checkbox" class="mt-0.5 h-5 w-5 rounded border-red-400 text-red-600 accent-red-600 cursor-pointer shrink-0">
+                <span class="text-red-600 font-bold animate-pulse text-sm leading-snug">URGENT: I have an exam in the next 2 hours</span>
+              </label>
+
+              <!-- Massive Mobile-Friendly Action Button -->
+              <button type="submit" id="btnStudentSubmit" class="w-full md:w-auto min-h-[56px] text-lg font-bold shadow-md hover:shadow-lg rounded-xl bg-[#8EC5FF] hover:bg-[#72B4F8] text-[#3B2418] px-6 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99] border border-[#3B2418]/20">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                <span>Log Emergency Transit Request</span>
+              </button>
+            </form>
+          </div>
+          <!-- Notice: The "My Requests" list is completely removed for student privacy -->
+        </div>
+
+        <!-- Live Status Tracker & Simulated GPS Column (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+
+          <!-- LIVE STATUS TRACKER UI -->
+          <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/15 p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-[#3B2418]/10">
+              <div class="flex items-center space-x-3">
+                <div class="h-3 w-3 rounded-full bg-[#8EC5FF] animate-ping"></div>
+                <h2 class="text-lg font-bold text-[#3B2418]">Live Status Tracker</h2>
+              </div>
+              <span id="trackerRequestIdBadge" class="text-xs font-mono bg-[#F2E8DA] text-[#3B2418] font-bold border border-[#3B2418]/20 px-2 py-1 rounded">No Active Session</span>
+            </div>
+
+            <!-- Friendly Empty State -->
+            <div id="trackerEmptyState" class="py-12 text-center">
+              <div class="h-16 w-16 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-gray-400 mb-3">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-700">No active ride request in this session</h3>
+              <p class="text-xs text-gray-500 max-w-sm mx-auto mt-1">No stranded students right now. The community is moving smoothly! If your bus is delayed, log a request on the left.</p>
+            </div>
+
+            <!-- Active Tracker Flow (ONLY shown for currentSessionRequestId) -->
+            <div id="trackerActiveState" class="space-y-6 pt-4 hidden">
+              
+              <!-- 1. Green Exam Relocated Banner (Explicit parent wrapper, toggled via Tailwind 'hidden') -->
+              <div id="examRelocatedBanner" class="hidden rounded-2xl bg-emerald-600 text-white p-6 sm:p-8 text-center shadow-xl border-4 border-emerald-400">
+                <div class="inline-flex items-center space-x-2 bg-emerald-700/80 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
+                  <span>⚡ Crisis Relocation Authorized</span>
+                </div>
+                <div class="text-2xl sm:text-3xl font-black tracking-tight leading-snug">
+                  EXAM RELOCATED: Proceed immediately to <span id="examRelocatedCenterName" class="underline decoration-emerald-300 underline-offset-4">District Govt High School</span>
+                </div>
+                <p class="text-emerald-100 text-sm mt-3 max-w-lg mx-auto">
+                  Your emergency exam relocation was verified and authorized by School Ops. You no longer need the stranded bus route — proceed directly to the partner center.
+                </p>
+              </div>
+
+              <!-- 2. Yellow ExamBridge Request Section (Explicit parent wrapper, toggled via Tailwind 'hidden') -->
+              <div id="examBridgeRequestContainer" class="hidden bg-yellow-50 border-2 border-yellow-400 rounded-2xl p-4 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold uppercase tracking-wider text-yellow-800 flex items-center gap-1.5">
+                    <span>⚡</span> Exam Day Crisis Detected
+                  </span>
+                  <span class="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded border border-red-300 animate-pulse">2-HOUR WINDOW</span>
+                </div>
+                <button id="btnRequestExamBridge" onclick="requestExamBridge(this)"
+                  class="w-full min-h-[56px] text-lg font-bold bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600 text-yellow-900 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99] border-2 border-yellow-500">
+                  <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  <span>ExamBridge: Request Nearest Alternative Center</span>
+                </button>
+                <p class="text-[11px] text-yellow-700 text-center font-medium">Bypass stranded bus and request reassignment to nearest partner exam center.</p>
+              </div>
+
+              <!-- 3. Yellow ExamBridge Pending Review Banner (Explicit parent wrapper, toggled via Tailwind 'hidden') -->
+              <div id="examBridgePendingBanner" class="hidden rounded-2xl border-2 border-yellow-400 bg-yellow-50 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                  <span class="text-3xl">⚡</span>
+                  <div>
+                    <div class="text-sm font-bold text-yellow-900">ExamBridge Relocation Requested</div>
+                    <div class="text-xs text-yellow-700 mt-0.5">School Ops is reviewing nearest authorized centers (District Govt High School, 2.5 km).</div>
+                  </div>
+                </div>
+                <span class="self-start sm:self-auto text-xs font-bold bg-yellow-200 text-yellow-900 px-3 py-1 rounded-full border border-yellow-400 animate-pulse">
+                  Pending School Review
+                </span>
+              </div>
+
+              <!-- Passenger & Route Metadata Tag -->
+              <div class="bg-[#FAF7F2] rounded-xl p-3.5 border border-[#3B2418]/15 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div>
+                  <span class="text-[#3B2418]/60 font-medium">Student:</span> 
+                  <strong id="trackerStudentName" class="text-[#3B2418] ml-1 font-bold text-sm">--</strong>
+                </div>
+                <div>
+                  <span class="text-[#3B2418]/60 font-medium">Village:</span> 
+                  <strong id="trackerStudentVillage" class="text-[#3B2418] ml-1 font-bold">--</strong>
+                </div>
+                <div>
+                  <span class="text-[#3B2418]/60 font-medium">Cluster Size:</span>
+                  <span id="trackerVillageCountBadge" class="ml-1 px-1.5 py-0.5 rounded font-mono font-bold bg-[#8EC5FF]/30 text-[#3B2418] border border-[#8EC5FF]/40 text-[11px]">1</span>
+                </div>
+              </div>
+
+              <!-- 6-State Visual Stepper (Color Psychology Applied Globally) -->
+              <div id="transitStepperContainer">
+                <p class="text-xs font-bold uppercase text-[#3B2418]/70 mb-4 tracking-wider">Transit Lifecycle Tracker</p>
+                <div class="relative">
+                  <!-- Stepper Progress Line Background -->
+                  <div class="absolute top-4 left-4 right-4 h-1 bg-[#F2E8DA] border-t border-[#3B2418]/20 -z-0"></div>
+                  <!-- Active Stepper Progress Fill -->
+                  <div id="stepperProgressFill" class="absolute top-4 left-4 h-1 bg-[#8EC5FF] transition-all duration-500 -z-0" style="width: 0%;"></div>
+
+                  <!-- 6 Step Nodes -->
+                  <div class="grid grid-cols-6 text-center relative z-10 gap-0.5 sm:gap-1">
+                    
+                    <!-- 1. Waiting (Brown/Cream) -->
+                    <div id="stepNode-Waiting" class="flex flex-col items-center">
+                      <div class="step-circle w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#3B2418]/25 bg-[#F2E8DA] flex items-center justify-center text-[10px] sm:text-xs font-bold text-[#3B2418]/60 transition-all">1</div>
+                      <span class="text-[10px] font-semibold mt-1.5 text-[#3B2418]/70 leading-tight">Waiting</span>
+                    </div>
+
+                    <!-- 2. Routing (Brown/Cream) -->
+                    <div id="stepNode-Routing" class="flex flex-col items-center">
+                      <div class="step-circle w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#3B2418]/25 bg-[#F2E8DA] flex items-center justify-center text-[10px] sm:text-xs font-bold text-[#3B2418]/60 transition-all">2</div>
+                      <span id="stepNode-Routing-Label" class="text-[10px] font-semibold mt-1.5 text-[#3B2418]/70 leading-tight">Routing</span>
+                    </div>
+
+                    <!-- 3. Vehicle_Assigned (Baby Blue) -->
+                    <div id="stepNode-Vehicle_Assigned" class="flex flex-col items-center">
+                      <div class="step-circle w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#3B2418]/25 bg-[#F2E8DA] flex items-center justify-center text-[10px] sm:text-xs font-bold text-[#3B2418]/60 transition-all">3</div>
+                      <span class="text-[10px] font-semibold mt-1.5 text-[#3B2418]/70 leading-tight">Assigned</span>
+                    </div>
+
+                    <!-- 4. In_Transit (Baby Blue) -->
+                    <div id="stepNode-In_Transit" class="flex flex-col items-center">
+                      <div class="step-circle w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#3B2418]/25 bg-[#F2E8DA] flex items-center justify-center text-[10px] sm:text-xs font-bold text-[#3B2418]/60 transition-all">4</div>
+                      <span class="text-[10px] font-semibold mt-1.5 text-[#3B2418]/70 leading-tight">In Transit</span>
+                    </div>
+
+                    <!-- 5. Arrived_Pending_Payment (Brown) -->
+                    <div id="stepNode-Arrived_Pending_Payment" class="flex flex-col items-center">
+                      <div class="step-circle w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#3B2418]/25 bg-[#F2E8DA] flex items-center justify-center text-[10px] sm:text-xs font-bold text-[#3B2418]/60 transition-all">5</div>
+                      <span class="text-[10px] font-semibold mt-1.5 text-[#3B2418]/70 leading-tight">Arrived</span>
+                    </div>
+
+                    <!-- 6. Completed (Brown) -->
+                    <div id="stepNode-Completed" class="flex flex-col items-center">
+                      <div class="step-circle w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#3B2418]/25 bg-[#F2E8DA] flex items-center justify-center text-[10px] sm:text-xs font-bold text-[#3B2418]/60 transition-all">6</div>
+                      <span class="text-[10px] font-semibold mt-1.5 text-[#3B2418]/70 leading-tight">Completed</span>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dynamic Status Banner & Action Buttons -->
+              <div id="trackerStatusCard" class="rounded-xl border border-[#3B2418]/15 bg-[#FAF7F2] p-4 transition-all">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <span id="trackerCurrentBadge" class="inline-block px-2.5 py-1 text-xs font-bold rounded-lg uppercase tracking-wide">
+                      STATUS
+                    </span>
+                    <p id="trackerStatusDescription" class="mt-2 text-sm text-[#3B2418]/80 font-medium">
+                      Description of current state.
+                    </p>
+                  </div>
+                  <div id="assignedTransportMeta" class="text-right hidden">
+                    <span class="text-[11px] uppercase tracking-wider text-[#3B2418]/60 font-semibold block">Vehicle Info</span>
+                    <strong id="assignedTransportName" class="text-sm text-[#3B2418] font-bold block">--</strong>
+                    <span id="assignedTransportType" class="text-xs text-[#3B2418] font-bold">--</span>
+                  </div>
+                </div>
+
+                <!-- Massive Mobile-Friendly Student Action Button -->
+                <div class="mt-4 pt-3 border-t border-[#3B2418]/15">
+                  <button id="btnStudentBoarded" onclick="studentConfirmBoarded(this)" disabled class="w-full md:w-auto min-h-[56px] text-lg font-bold shadow-md hover:shadow-lg rounded-xl px-6 transition-all duration-200 flex items-center justify-center space-x-2 bg-[#E5D5C1] text-[#3B2418]/40 cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <span>Confirm Boarded (Step 4)</span>
+                  </button>
+                  <p id="studentButtonHelperText" class="text-[11px] text-[#3B2418]/70 mt-2 text-center">
+                    Boarding button unlocks once a vehicle is assigned. (Note: Safe arrival verification is authorized by school security).
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- MOCK FEATURE: SIMULATED MAP / GPS TRACKING INTERFACE (ZOMATO / UBER RIDE-TRACKING STYLE) -->
+          <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/15 overflow-hidden">
+            <div class="p-3.5 px-4 border-b border-[#3B2418]/10 flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <span class="h-2.5 w-2.5 rounded-full bg-[#8EC5FF] animate-pulse"></span>
+                <h3 class="text-sm font-bold text-[#3B2418]">Map / GPS Tracking Interface (Simulated)</h3>
+              </div>
+              <span class="text-[11px] font-mono bg-[#8EC5FF]/20 text-[#3B2418] font-bold px-2 py-0.5 rounded-full border border-[#8EC5FF]/40 flex items-center gap-1">
+                <span class="h-1.5 w-1.5 rounded-full bg-[#3B2418] animate-ping"></span> Live GPS Feed
+              </span>
+            </div>
+
+            <!-- Map Viewport Container: Fixed Height h-72, rounded, light background with subtle streets -->
+            <div id="simulatedMapContainer" class="relative h-72 w-full bg-[#FAF7F2] overflow-hidden shadow-inner select-none">
+              
+              <!-- Subtle City Street & Waterway Vector Background -->
+              <svg class="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" viewBox="0 0 700 288">
+                <defs>
+                  <!-- Street block grid pattern -->
+                  <pattern id="city-blocks" width="70" height="70" patternUnits="userSpaceOnUse">
+                    <rect width="66" height="66" fill="#FAF7F2" stroke="#E8DAC8" stroke-width="1.2" rx="4" />
+                    <!-- Alleyways -->
+                    <line x1="33" y1="0" x2="33" y2="66" stroke="#F2E8DA" stroke-width="1" />
+                    <line x1="0" y1="33" x2="66" y2="33" stroke="#F2E8DA" stroke-width="1" />
+                  </pattern>
+                </defs>
+
+                <!-- Base fill with city blocks -->
+                <rect width="100%" height="100%" fill="url(#city-blocks)" />
+
+                <!-- Green/Earthy park area watermark -->
+                <path d="M 40 20 C 100 15, 140 60, 120 110 C 100 150, 30 130, 20 80 Z" fill="#F2E8DA" opacity="0.85" />
+                <text x="50" y="75" fill="#3B2418" font-size="10" font-family="sans-serif" font-weight="600" opacity="0.6">Eco Park</text>
+
+                <!-- Second community park -->
+                <rect x="520" y="160" width="130" height="70" rx="8" fill="#F2E8DA" opacity="0.85" />
+                <text x="545" y="200" fill="#3B2418" font-size="10" font-family="sans-serif" font-weight="600" opacity="0.6">District Reserve</text>
+
+                <!-- Canal / River watermark in soft baby blue -->
+                <path d="M 0 140 Q 180 200, 350 110 T 700 160" fill="none" stroke="#C2E1FF" stroke-width="14" stroke-linecap="round" opacity="0.75" />
+                <path d="M 0 140 Q 180 200, 350 110 T 700 160" fill="none" stroke="#8EC5FF" stroke-width="3" stroke-linecap="round" opacity="0.8" />
+
+                <!-- Secondary City Streets -->
+                <path d="M 0 60 L 700 60" stroke="#E5D5C1" stroke-width="4" stroke-opacity="0.8" />
+                <path d="M 0 220 L 700 220" stroke="#E5D5C1" stroke-width="4" stroke-opacity="0.8" />
+                <path d="M 180 0 L 180 288" stroke="#E5D5C1" stroke-width="5" stroke-opacity="0.8" />
+                <path d="M 490 0 L 490 288" stroke="#E5D5C1" stroke-width="5" stroke-opacity="0.8" />
+
+                <!-- Major Arterial Highway (Corridor) -->
+                <path d="M 70 210 C 180 80, 340 230, 620 90" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M 70 210 C 180 80, 340 230, 620 90" fill="none" stroke="#8EC5FF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.45" />
+
+                <!-- Active Ride Route (Curved, Dashed Line) -->
+                <!-- Route Glow -->
+                <path d="M 70 210 C 180 80, 340 230, 620 90" fill="none" stroke="#8EC5FF" stroke-width="10" stroke-linecap="round" opacity="0.4" />
+                <!-- Route Animated Dash -->
+                <path d="M 70 210 C 180 80, 340 230, 620 90" fill="none" stroke="#3B2418" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="dash-line" />
+              </svg>
+
+              <!-- Floating ETA Overlay Card (Zomato / Uber Style) -->
+              <div id="floatingEtaCard" class="absolute top-3 left-3 right-3 sm:right-auto sm:max-w-xs z-20 bg-white/95 backdrop-blur-md rounded-xl p-3 shadow-xl border border-[#3B2418]/20 transition-all duration-300">
+                <div class="flex items-start space-x-3">
+                  <!-- Dynamic Vehicle / Action Icon Badge -->
+                  <div id="mapEtaIconWrapper" class="h-10 w-10 rounded-xl bg-[#8EC5FF]/20 border border-[#8EC5FF]/40 text-[#3B2418] flex items-center justify-center text-xl shrink-0 shadow-sm">
+                    <span id="mapEtaIcon">🛺</span>
+                  </div>
+                  <!-- Content -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-1.5">
+                      <h4 id="mapEtaStatusText" class="text-xs font-bold text-[#3B2418] truncate">Searching for nearby vehicles...</h4>
+                      <span id="mapEtaBadge" class="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#8EC5FF] text-[#3B2418] uppercase tracking-wider shrink-0">SEARCHING</span>
+                    </div>
+                    <!-- Metrics Row: ETA & Distance -->
+                    <div class="flex items-center space-x-2 text-xs text-[#3B2418]/70 mt-1">
+                      <span class="flex items-center font-bold text-[#3B2418] text-[11px]">
+                        <span class="text-[#3B2418]/50 mr-1">ETA:</span> 
+                        <span id="mapEtaValue" class="text-[#3B2418] font-bold">Calculating...</span>
+                      </span>
+                      <span class="text-[#3B2418]/30">•</span>
+                      <span class="flex items-center text-[11px]">
+                        <span class="text-[#3B2418]/50 mr-1">Dist:</span> 
+                        <span id="mapDistanceValue" class="font-bold text-[#3B2418]">--</span>
+                      </span>
+                    </div>
+                    <p id="gpsTelemetryStatus" class="text-[10px] text-[#3B2418]/60 truncate mt-1">
+                      Awaiting vehicle assignment.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pickup Marker (Baby Blue Pulsing Dot) -->
+              <div id="mapPickupMarker" class="absolute z-10 flex flex-col items-center pointer-events-none" style="left: 10%; top: 72%; transform: translate(-50%, -50%);">
+                <div class="relative flex h-5 w-5 items-center justify-center">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8EC5FF] opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-4 w-4 bg-[#8EC5FF] border-2 border-[#3B2418] shadow-md"></span>
+                </div>
+                <div class="mt-1 bg-white/95 backdrop-blur-sm border border-[#3B2418]/20 text-[10px] font-bold text-[#3B2418] px-2 py-0.5 rounded-md shadow-md whitespace-nowrap">
+                  📍 <span id="mapPickupLabel">Pickup: Velhe Junction</span>
+                </div>
+              </div>
+
+              <!-- Destination Marker (Brown Pin) -->
+              <div id="mapDestinationMarker" class="absolute z-10 flex flex-col items-center pointer-events-none" style="left: 88%; top: 32%; transform: translate(-50%, -50%);">
+                <div class="relative flex h-5 w-5 items-center justify-center">
+                  <span class="relative inline-flex rounded-full h-4 w-4 bg-[#3B2418] border-2 border-[#F2E8DA] shadow-md"></span>
+                </div>
+                <div class="mt-1 bg-white/95 backdrop-blur-sm border border-[#3B2418]/20 text-[10px] font-bold text-[#3B2418] px-2 py-0.5 rounded-md shadow-md whitespace-nowrap">
+                  🎯 <span id="mapDestinationLabel">District Central College</span>
+                </div>
+              </div>
+
+              <!-- Simulated Vehicle Badge (White Circular Badge with 🛺/🚌 Emoji, Heavily Shadowed) -->
+              <div id="mapVehicleBadge" 
+                class="absolute z-15 transition-all duration-700 ease-out transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-2.5 shadow-2xl border-2 border-[#8EC5FF] flex items-center justify-center text-xl cursor-pointer hover:scale-110"
+                style="left: 24%; top: 52%;">
+                <span id="mapVehicleEmoji">🛺</span>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- 2. SCHOOL DISPATCH & OPERATIONS DASHBOARD                                -->
+    <!-- ========================================================================= -->
+    <div id="schoolDashboard" class="space-y-6 hidden">
+      
+      <!-- School Ops Header Banner -->
+      <div class="bg-gradient-to-r from-[#3B2418] via-[#4D2F1F] to-[#2B1A11] rounded-2xl p-6 text-[#F2E8DA] shadow-md border border-[#3B2418] flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center space-x-2 bg-[#8EC5FF]/20 border border-[#8EC5FF]/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 text-[#8EC5FF]">
+            <span>District Dispatch Operations Center</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">School Transit Command</h1>
+          <p class="text-sm text-[#F2E8DA]/85 mt-1 max-w-2xl">
+            High demand corridors (>10 students) trigger emergency school bus dispatch. In-transit vehicles are monitored for authorized campus safe arrival.
+          </p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <div class="bg-[#281810]/80 border border-[#F2E8DA]/20 px-4 py-2 rounded-xl text-center">
+            <span class="text-xs text-[#F2E8DA]/70 uppercase font-semibold block">ExamBridge</span>
+            <span id="statSchoolExamBridgeCount" class="text-xl font-bold text-[#8EC5FF]">0</span>
+          </div>
+          <div class="bg-[#281810]/80 border border-[#F2E8DA]/20 px-4 py-2 rounded-xl text-center">
+            <span class="text-xs text-[#F2E8DA]/70 uppercase font-semibold block">High Demand (&gt;10)</span>
+            <span id="statSchoolHighDemandCount" class="text-xl font-bold text-[#8EC5FF]">0</span>
+          </div>
+          <div class="bg-[#281810]/80 border border-[#F2E8DA]/20 px-4 py-2 rounded-xl text-center">
+            <span class="text-xs text-[#F2E8DA]/70 uppercase font-semibold block">In Transit</span>
+            <span id="statSchoolInTransitCount" class="text-xl font-bold text-[#8EC5FF]">0</span>
+          </div>
+          <div class="bg-[#281810]/80 border border-[#F2E8DA]/20 px-4 py-2 rounded-xl text-center">
+            <span class="text-xs text-[#F2E8DA]/70 uppercase font-semibold block">Total Active</span>
+            <span id="statSchoolTotalActiveCount" class="text-xl font-bold text-white">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 0: EXAMBRIDGE CRISIS RELOCATIONS -->
+      <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/20 overflow-hidden">
+        <div class="p-5 border-b border-[#3B2418]/20 bg-[#3B2418] text-[#F2E8DA] flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span>⚡</span>
+              <h2 class="text-lg font-bold text-white">ExamBridge Crisis Relocations</h2>
+            </div>
+            <p class="text-xs text-[#F2E8DA]/80 mt-0.5">Exam-priority students requesting alternative centers — bypass normal transit queue</p>
+          </div>
+          <span id="examBridgeCounterTag" class="text-xs font-bold px-3 py-1 rounded-full bg-[#8EC5FF] text-[#3B2418] border border-[#8EC5FF]/40">
+            0 Requests
+          </span>
+        </div>
+
+        <div id="schoolExamBridgeList" class="divide-y divide-[#3B2418]/10">
+          <!-- Populated by app.js -->
+        </div>
+
+        <div id="schoolEmptyExamBridge" class="p-8 text-center">
+          <div class="w-10 h-10 rounded-full bg-[#F2E8DA] mx-auto flex items-center justify-center mb-2 text-[#3B2418]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <p class="text-xs text-[#3B2418]/70">No ExamBridge relocation requests pending. All exam students are on track!</p>
+        </div>
+      </div>
+
+      <!-- SECTION 1: HIGH DEMAND QUEUE (status === 'School_Reviewing') -->
+      <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/15 overflow-hidden">
+        <div class="p-5 border-b border-[#3B2418]/10 flex flex-wrap items-center justify-between gap-3 bg-[#FAF7F2]">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="h-2.5 w-2.5 rounded-full bg-[#8EC5FF] animate-pulse"></span>
+              <h2 class="text-lg font-bold text-[#3B2418]">High Demand Queue (> 10 Stranded in Village)</h2>
+            </div>
+            <p class="text-xs text-[#3B2418]/70 mt-0.5">
+              Filtered for status: <span class="font-mono text-[#3B2418] bg-[#8EC5FF]/20 px-1.5 py-0.5 rounded font-bold border border-[#8EC5FF]/40">School_Reviewing</span>. High student volume qualifies for reserve bus deployment.
+            </p>
+          </div>
+          <span id="highDemandCounterTag" class="text-xs font-bold px-3 py-1 rounded-full bg-[#8EC5FF]/25 text-[#3B2418] border border-[#8EC5FF]">
+            0 Requests
+          </span>
+        </div>
+
+        <div id="schoolHighDemandList" class="divide-y divide-[#3B2418]/10">
+          <!-- Populated by app.js -->
+        </div>
+
+        <div id="schoolEmptyHighDemand" class="p-8 text-center hidden">
+          <div class="w-12 h-12 rounded-full bg-[#F2E8DA] text-[#3B2418] mx-auto flex items-center justify-center mb-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <h3 class="text-sm font-bold text-[#3B2418]">All Corridors Clear</h3>
+          <p class="text-xs text-[#3B2418]/70 max-w-sm mx-auto mt-0.5">
+            No stranded students right now. The community is moving smoothly!
+          </p>
+        </div>
+      </div>
+
+      <!-- SECTION 2: ACTIVE TRANSIT MONITOR (status === 'In_Transit') -->
+      <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/15 overflow-hidden">
+        <div class="p-5 border-b border-[#3B2418]/10 flex flex-wrap items-center justify-between gap-3 bg-[#FAF7F2]">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="h-2.5 w-2.5 rounded-full bg-[#8EC5FF] animate-ping"></span>
+              <h2 class="text-lg font-bold text-[#3B2418]">Active Transit Monitor (Arrival Authorization)</h2>
+            </div>
+            <p class="text-xs text-[#3B2418]/70 mt-0.5">
+              Filtered for status: <span class="font-mono text-[#3B2418] bg-[#8EC5FF]/20 px-1.5 py-0.5 rounded font-bold border border-[#8EC5FF]/40">In_Transit</span>. Campus security authenticates safe drop-off to trigger payment stage.
+            </p>
+          </div>
+          <span id="activeTransitCounterTag" class="text-xs font-bold px-3 py-1 rounded-full bg-[#8EC5FF]/25 text-[#3B2418] border border-[#8EC5FF]">
+            0 In Transit
+          </span>
+        </div>
+
+        <div id="schoolActiveTransitList" class="divide-y divide-[#3B2418]/10">
+          <!-- Populated by app.js with massive action button -->
+        </div>
+
+        <div id="schoolEmptyActiveTransit" class="p-8 text-center hidden">
+          <p class="text-xs text-[#3B2418]/70">No stranded students in transit right now. The community is moving smoothly!</p>
+        </div>
+      </div>
+
+      <!-- SECTION 3: GLOBAL LIVE STREAM (All Active Students System-Wide) -->
+      <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/15 overflow-hidden">
+        <div class="p-5 border-b border-[#3B2418]/10 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-[#3B2418]">Global Live Stream (All Active Students)</h2>
+            <p class="text-xs text-[#3B2418]/70">Real-time status of all students across the district</p>
+          </div>
+          <div class="text-xs text-[#3B2418] bg-[#F2E8DA] px-3 py-1 rounded-lg border border-[#3B2418]/20 font-mono font-bold">
+            Live Feed: Synchronized
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-[#3B2418]/80">
+            <thead class="bg-[#FAF7F2] text-[11px] uppercase tracking-wider text-[#3B2418]/70 font-bold border-b border-[#3B2418]/15">
+              <tr>
+                <th class="px-4 py-3">Student & ID</th>
+                <th class="px-4 py-3">Village / Corridor</th>
+                <th class="px-4 py-3">Reported Time</th>
+                <th class="px-4 py-3">Current Status</th>
+                <th class="px-4 py-3">Assigned Vehicle</th>
+              </tr>
+            </thead>
+            <tbody id="schoolGlobalLiveStreamBody" class="divide-y divide-[#3B2418]/10">
+              <!-- Populated by app.js -->
+            </tbody>
+          </table>
+        </div>
+        <div id="schoolEmptyGlobalStream" class="p-8 text-center hidden">
+          <p class="text-xs text-[#3B2418]/70">No stranded students right now. The community is moving smoothly!</p>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- 3. DRIVER / LOCAL TRANSPORT DASHBOARD                                    -->
+    <!-- ========================================================================= -->
+    <div id="driverDashboard" class="space-y-6 hidden">
+      
+      <!-- Driver Header Banner -->
+      <div class="bg-gradient-to-r from-[#3B2418] via-[#4D2F1F] to-[#2B1A11] rounded-2xl p-6 text-[#F2E8DA] shadow-md border border-[#3B2418] flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center space-x-2 bg-[#8EC5FF]/20 border border-[#8EC5FF]/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 text-[#8EC5FF]">
+            <span>Community Fleet Marketplace</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">Local Driver Transport Board</h1>
+          <p class="text-sm text-[#F2E8DA]/85 mt-1 max-w-xl">
+            Low-volume village clusters ($\le 10$ students) are auto-broadcast here directly without school delay. Accept fares to coordinate immediate pickup.
+          </p>
+        </div>
+
+        <!-- Driver Profile Selector -->
+        <div class="bg-[#281810]/80 backdrop-blur-md p-3 rounded-xl border border-[#F2E8DA]/20 text-xs">
+          <label class="block text-[#F2E8DA] uppercase font-bold mb-1">Active Driver Identity:</label>
+          <select id="driverIdentitySelect" class="bg-[#3B2418] text-white border border-[#F2E8DA]/25 px-3 py-1.5 rounded-lg text-xs focus:ring-1 focus:ring-[#8EC5FF]">
+            <option value="Ramesh Patil (Mahindra Bolero - 6 seats)">Ramesh Patil (Bolero 6-Seater)</option>
+            <option value="Sunita Shinde (Force Trax Van - 8 seats)">Sunita Shinde (Trax Van 8-Seater)</option>
+            <option value="Anil More (Maruti Eeco - 5 seats)">Anil More (Eeco 5-Seater)</option>
+            <option value="Kisan Sahakari Van #3">Kisan Sahakari Mini-Bus</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Auto-Broadcast Board -->
+      <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/15 overflow-hidden">
+        <div class="p-5 border-b border-[#3B2418]/10 flex flex-wrap items-center justify-between gap-3 bg-[#FAF7F2]">
+          <div>
+            <h2 class="text-lg font-bold text-[#3B2418]">Auto-Broadcast Demands (≤10 Students)</h2>
+            <p class="text-xs text-[#3B2418]/70">Filtered for status: <span class="font-mono text-[#3B2418] bg-[#8EC5FF]/20 px-1.5 py-0.5 rounded font-bold border border-[#8EC5FF]/30">Auto_Broadcast_To_Locals</span></p>
+          </div>
+          <span id="driverAvailableCountBadge" class="px-3 py-1 text-xs font-bold rounded-full bg-[#8EC5FF]/25 text-[#3B2418] border border-[#8EC5FF]">
+            0 Rides Available
+          </span>
+        </div>
+
+        <!-- Driver Alert Cards Grid -->
+        <div id="driverAlertList" class="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Populated by app.js with massive action buttons -->
+        </div>
+
+        <!-- Friendly Empty State for Driver Board -->
+        <div id="driverEmptyAlert" class="p-12 text-center hidden">
+          <div class="w-16 h-16 rounded-full bg-[#F2E8DA] text-[#3B2418] mx-auto flex items-center justify-center mb-3">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          </div>
+          <h3 class="text-base font-bold text-slate-800">No Auto-Broadcast Demands Waiting</h3>
+          <p class="text-xs text-gray-500 max-w-sm mx-auto mt-1">
+            No stranded students right now. The community is moving smoothly!
+          </p>
+        </div>
+      </div>
+
+      <!-- Driver's Accepted Rides -->
+      <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/15 p-5">
+        <h3 class="text-sm font-bold text-[#3B2418] uppercase tracking-wider mb-3">My Accepted / In-Progress Rides</h3>
+        <div id="driverAcceptedList" class="space-y-3">
+          <!-- Populated by app.js -->
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- 4. PARENTS DASHBOARD (4TH TAB)                                           -->
+    <!-- ========================================================================= -->
+    <div id="parentDashboard" class="space-y-6 hidden">
+      
+      <!-- Parents Header Banner -->
+      <div class="bg-gradient-to-r from-[#3B2418] via-[#4D2F1F] to-[#2B1A11] rounded-2xl p-6 text-[#F2E8DA] shadow-md border border-[#3B2418] flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center space-x-2 bg-[#8EC5FF]/20 border border-[#8EC5FF]/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 text-[#8EC5FF]">
+            <span>Guardian & Family Portal</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">Parental Oversight & Payment</h1>
+          <p class="text-sm text-[#F2E8DA]/85 mt-1 max-w-xl">
+            Track your child's journey in real-time. Once the school verifies safe arrival at the campus gate, pay the driver fare to complete the trip.
+          </p>
+        </div>
+
+        <div class="bg-[#281810]/80 backdrop-blur-md p-3 rounded-xl border border-[#F2E8DA]/20 text-xs">
+          <label class="block text-[#F2E8DA] uppercase font-bold mb-1">Select Child Record:</label>
+          <select id="parentChildSelector" onchange="parentSelectChild(this.value)" class="bg-[#3B2418] text-[#F2E8DA] border border-[#F2E8DA]/25 px-3 py-1.5 rounded-lg text-xs focus:ring-1 focus:ring-[#8EC5FF]">
+            <!-- Populated by app.js -->
+          </select>
+        </div>
+      </div>
+
+      <!-- Live Child Status & Payment Card -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Child Journey Card (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/15 p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-[#3B2418]/10">
+              <div class="flex items-center space-x-3">
+                <span class="h-3 w-3 rounded-full bg-[#8EC5FF]"></span>
+                <h2 class="text-lg font-bold text-[#3B2418]">Live Child Status Tracker</h2>
+              </div>
+              <span id="parentTrackerId" class="text-xs font-mono bg-[#F2E8DA] text-[#3B2418] font-bold border border-[#3B2418]/20 px-2 py-1 rounded">No Child Selected</span>
+            </div>
+
+            <!-- Friendly Empty State for Parent Tracker -->
+            <div id="parentEmptyState" class="py-12 text-center">
+              <div class="w-16 h-16 mx-auto rounded-full bg-[#F2E8DA] flex items-center justify-center text-[#3B2418] mb-3">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+              </div>
+              <h3 class="text-base font-bold text-[#3B2418]">No active student trip to display</h3>
+              <p class="text-xs text-[#3B2418]/70 max-w-sm mx-auto mt-1">
+                No stranded students right now. The community is moving smoothly!
+              </p>
+            </div>
+
+            <!-- Active Child Trip Details -->
+            <div id="parentActiveState" class="space-y-6 pt-4 hidden">
+              
+              <!-- Child Details Tag -->
+              <div class="bg-[#FAF7F2] rounded-xl p-4 border border-[#3B2418]/15 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div>
+                  <span class="text-[#3B2418]/60 font-medium">Child Name:</span>
+                  <strong id="parentChildName" class="text-[#3B2418] text-sm ml-1 font-bold">--</strong>
+                </div>
+                <div>
+                  <span class="text-[#3B2418]/60 font-medium">Village:</span>
+                  <strong id="parentChildVillage" class="text-[#3B2418] ml-1 font-bold">--</strong>
+                </div>
+                <div>
+                  <span class="text-[#3B2418]/60 font-medium">Destination:</span>
+                  <strong class="text-[#3B2418] ml-1 font-bold">District Central College</strong>
+                </div>
+              </div>
+
+              <!-- Status Display Card -->
+              <div id="parentStatusCard" class="rounded-xl border border-[#3B2418]/15 bg-[#FAF7F2] p-4 transition-all">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <span id="parentStatusBadge" class="inline-block px-2.5 py-1 text-xs font-bold rounded-lg uppercase tracking-wide">
+                      STATUS
+                    </span>
+                    <p id="parentStatusMessage" class="mt-2 text-sm text-[#3B2418]/80 font-medium">
+                      Status explanation.
+                    </p>
+                  </div>
+                  <div id="parentTransportDetails" class="text-right">
+                    <span class="text-[11px] uppercase tracking-wider text-[#3B2418]/60 font-semibold block">Vehicle / Driver</span>
+                    <strong id="parentDriverName" class="text-xs text-[#3B2418] font-bold block">--</strong>
+                  </div>
+                </div>
+
+                <!-- PAYMENT GATEWAY CALL TO ACTION (Strictly dynamically populated in Arrived_Pending_Payment) -->
+                <div id="parentPaymentSection" class="mt-5 pt-4 border-t border-[#3B2418]/15 hidden">
+                  <div class="bg-[#F2E8DA] rounded-xl p-4 border-2 border-[#3B2418]">
+                    <div class="flex items-center space-x-2 text-[#3B2418] font-bold text-sm mb-1">
+                      <svg class="w-5 h-5 text-[#3B2418]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      <span>Safe Arrival Confirmed by Campus Gate!</span>
+                    </div>
+                    <p class="text-xs text-[#3B2418]/80 mb-3">
+                      The school operations team has authorized that your child has reached campus safely. Please complete driver fare settlement.
+                    </p>
+                    
+                    <div class="bg-white rounded-lg p-3 border border-[#3B2418]/15 text-xs space-y-1 mb-4">
+                      <div class="flex justify-between">
+                        <span class="text-[#3B2418]/60">Trip Fare:</span>
+                        <span class="font-semibold text-[#3B2418]">₹45.00</span>
+                      </div>
+                      <div class="flex justify-between text-[#3B2418]">
+                        <span>District Rural Transit Subsidy:</span>
+                        <span class="font-semibold">- ₹30.00</span>
+                      </div>
+                      <div class="flex justify-between border-t border-slate-100 pt-1 font-bold text-sm text-[#3B2418]">
+                        <span>Parent Share Due:</span>
+                        <span class="text-[#3B2418] font-black">₹15.00</span>
+                      </div>
+                    </div>
+
+                    <!-- Dynamic UPI QR Code & Action Button Container (Strictly injected in Arrived_Pending_Payment, removed outside) -->
+                    <div id="parentPaymentActionWrapper">
+                      <!-- Injected via app.js when journeyStatus === 'Arrived_Pending_Payment' -->
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Completed Badge if already completed -->
+                <div id="parentCompletedSection" class="mt-4 pt-3 border-t border-[#3B2418]/15 text-center hidden">
+                  <div class="inline-flex items-center space-x-2 bg-[#3B2418] text-[#F2E8DA] px-4 py-2 rounded-full text-xs font-bold shadow-sm">
+                    <svg class="w-4 h-4 text-[#8EC5FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <span>Journey Completed & Payment Settled</span>
+                  </div>
+                  <p class="text-xs text-[#3B2418]/70 mt-1">Receipt #REC-8291 archived in school transit ledger.</p>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Parent Safety & Escort Policy (5 cols) -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-[#3B2418]/15 p-6">
+            <h3 class="text-sm font-bold text-[#3B2418] uppercase tracking-wider mb-2">Child Safety & Authorization Protocol</h3>
+            <ul class="text-xs text-[#3B2418]/80 space-y-3 mt-3">
+              <li class="flex items-start space-x-2">
+                <span class="text-[#3B2418] font-bold">✓</span>
+                <span><strong>No Self-Arrival:</strong> Students cannot mark themselves as arrived. School security at the campus gate must physically authenticate arrival.</span>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-[#3B2418] font-bold">✓</span>
+                <span><strong>Escrow Fare Protection:</strong> Driver fare is released strictly after school sign-off and guardian authorization.</span>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-[#3B2418] font-bold">✓</span>
+                <span><strong>Vetted Drivers:</strong> Only background-checked rural operators are permitted on the auto-broadcast board.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-[#3B2418] text-[#F2E8DA]/70 text-xs py-5 border-t border-[#3B2418] mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center space-x-2">
+        <span class="font-bold text-[#F2E8DA]">Routeless</span>
+        <span>— Unified 6-Stage Rural Transit Coordination Protocol</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span class="text-[#F2E8DA]/50 font-mono">Engine: LocalStorage Reactive</span>
+        <button onclick="seedSampleData(false)" class="hover:text-[#8EC5FF] transition cursor-pointer">Seed Normal (≤10)</button>
+        <button onclick="seedHighDemandData()" class="hover:text-[#8EC5FF] transition cursor-pointer">Seed High (>10)</button>
+        <button onclick="clearAllData()" class="hover:text-rose-300 transition cursor-pointer">Reset State</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Core App Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
